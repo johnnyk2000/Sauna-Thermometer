@@ -224,10 +224,10 @@ void loop() {
               ledMillis = currentMillis;
           }
         // }
-        else {
-          oled.setCursor(0, 2);
-          oled.print(F("Body temp: ---      "));
-        }
+        // else {
+        //   oled.setCursor(0, 2);
+        //   oled.print(F("Body temp: ---      "));
+        // }
         measBtemp = false;
         dispBtemp = true; // Start displaying
         dispBtempMillis = currentMillis;
