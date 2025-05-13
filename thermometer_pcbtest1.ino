@@ -233,7 +233,7 @@ void loop() {
         dispBtempMillis = currentMillis;
       }
     }
-    else if (btemp >= 32 && btemp <= 43) { // Valid body temperature reading
+    else { // Start measuring body temperature again
       // TODO: print "Measuring" to OLED
       oled.setCursor(0, 2);
       oled.print(F("Body temp: Measuring"));
