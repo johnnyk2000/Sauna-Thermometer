@@ -73,7 +73,7 @@ void setup() {
   pinMode(VTP_PIN, INPUT);
   pinMode(LED_PIN, OUTPUT);
 
-  Serial.begin(9600);
+  Wire.begin();
 
   cli(); // Disable interrupts
 
