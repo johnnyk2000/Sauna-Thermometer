@@ -158,7 +158,7 @@ void loop() {
     //   oled.print(F("\200C   "));
     // // }
 
-    int Vptat = avg_adc_Vptat * 5.0 / 1024;
+    float Vptat = avg_adc_Vptat * 5.0 / 1024;
     oled.setCursor(0, 1);
     oled.print(F("Vptat: "));
     oled.print(Vptat, 4);
@@ -226,7 +226,7 @@ void loop() {
       if ((currentMillis - measBtempMillis) >= measBtempPeriod) { // Measurement period elapsed
         // if (btemp >= 32 && btemp <= 43) { // Valid body temperature reading
           // TODO: print btemp to OLED and RNBD serial
-          int Vtp = avg_adc_Vtp * 5.0 / 1024;
+          float Vtp = avg_adc_Vtp * 5.0 / 1024;
           oled.setCursor(0, 2);
           oled.print(F("Body temp: "));
           oled.print(Vtp, 4);
