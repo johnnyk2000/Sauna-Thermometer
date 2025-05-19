@@ -11,6 +11,7 @@
 #define LED_PIN 5
 
 // Linear fit parameters for calculating body temperature at each ambient temperature (20, 21, ..., 85°C)
+// TODO: change after calibration
 // const float Btemp_line_const[] = {-1.7194, -1.7874, -1.8560, -1.9254, -1.9954, -2.0662, -2.1377, -2.2099, -2.2828, -2.3564, -2.4308, 
 //                                   -2.5059, -2.5818, -2.6584, -2.7358, -2.8139, -2.8928, -2.9725, -3.0530, -3.1342, -3.2162, -3.2990, 
 //                                   -3.3826, -3.4670, -3.5522, -3.6382, -3.7250, -3.8126, -3.9011, -3.9904, -4.0805, -4.1715, -4.2633, 
@@ -28,6 +29,7 @@ const float Btemp_line2 = 0.08991;
 const float Btemp_line3 = 68.4766;
 
 // Voltage across thermistor, converted to ADC value, for each ambient temperature (20, 21, ..., 85°C)
+// TODO: change after calibration
 const int Vth_adc_table[] = {995, 951, 908, 868, 830, 794, 760, 727, 696, 666, 638, 611, 586, 562, 539, 517, 496, 476, 456, 438, 421, 404, 
                              389, 373, 359, 345, 332, 319, 307, 296, 285, 274, 264, 255, 245, 236, 228, 220, 212, 205, 197, 191, 184, 178, 
                              172, 166, 160, 155, 149, 145, 140, 135, 131, 126, 122, 118, 115, 111, 107, 104, 101, 98, 95, 92, 89, 86};
@@ -62,6 +64,7 @@ bool dispHR = false; // Flag for displaying heart rate
 bool measHR = false; // Flag for measuring heart rate
 bool ledWarningBtemp = false; // Flag for flashing warning LED for high body temperature
 bool ledWarningHR = false; // Flag for flashing warning LED for high heart rate
+bool dispInit = false; // Flag for displaying measurements upon initialization
 
 int atemp = 0; // Ambient temperature reading
 int stemp = 0; // Sensor temperature reading
@@ -96,25 +99,9 @@ void setup() {
   /* SETUP OLED */
   oled.begin(&Adafruit128x32, 0x3C); // Start the OLED display
   oled.setFont(System5x7);
-  delay(500);
 
-  /* TODO: Setup RNBD */
-
-  /* DISPLAY MEASUREMENTS UPON INITIALIZATION */                          /* TODO: RNBD */
-  // int adc_ptat = analogRead(VPTAT_PIN); // ADC reading of PTAT voltage
-  // // Vptat = 12.3733*Tamb + 2998.08 [mV] -> Tamb = Vptat/12.3733 - 242.30
-  // atemp = round(0.3946 * adc_ptat - 242.3); // TODO: check this
-  // oled.setCursor(0, 1);
-  // oled.print(F("Ambient temp: "));
-  // oled.print(atemp);
-  // oled.print(F("\200C ")); // \200 is octal escape for degree symbol
-  // updateAtempMillis = millis();
-
-  oled.setCursor(0, 2);
-  oled.print(F("Body temp: ---      "));
-
-  oled.setCursor(0, 3);
-  oled.print(F("Heart rate: ---    "));
+  dispInit = true;
+  updateAtempMillis = millis();
 }
 
 /* INTERRUPT SERVICE ROUTINE FOR SAMPLING THERMOPILE VOLTAGE */
@@ -128,8 +115,8 @@ ISR (TIMER2_COMPA_vect) {
 
   int adc_Vptat = analogRead(VPTAT_PIN); // ADC reading of PTAT voltage
 
-  // EMA filter formula: alpha*newSample + (1-alpha)*lastEMAvalue, with alpha=1/16 (to divide by power of 2)
-  avg_adc_Vptat = (adc_Vptat + 15 * avg_adc_Vptat) / 16;
+  // EMA filter formula: alpha*newSample + (1-alpha)*lastEMAvalue, with alpha=1/100=0.01
+  avg_adc_Vptat = (adc_Vptat + 99 * avg_adc_Vptat) / 100;
 
   // count++;
 
@@ -138,6 +125,29 @@ ISR (TIMER2_COMPA_vect) {
 
 void loop() {
   unsigned long currentMillis = millis();
+
+  /* DISPLAY MEASUREMENTS UPON INITIALIZATION */
+  if (dispInit) { // Just initialized
+    if ((currentMillis - updateAtempMillis) >= 1000) { // 1sec elapsed after initialization
+      atemp = round(0.3946 * avg_adc_Vptat - 242.3); // TODO: check this
+      oled.setCursor(0, 1);
+      oled.print(F("Ambient temp: "));
+      oled.print(atemp);
+      oled.print(F("\200C ")); // \200 is octal escape for degree symbol
+
+      oled.setCursor(0, 2);
+      oled.print(F("Body temp: ---      "));
+
+      oled.setCursor(0, 3);
+      oled.print(F("Heart rate: ---    "));
+
+      updateAtempMillis = currentMillis;
+      dispInit = false;
+    }
+    else { // Just initialized and 1sec not yet elapsed
+      return; // Don't start rest of program yet
+    }
+  }
 
   /* AMBIENT TEMPERATURE */
   if ((currentMillis - updateAtempMillis) >= updateAtempPeriod) { // Update period elapsed
