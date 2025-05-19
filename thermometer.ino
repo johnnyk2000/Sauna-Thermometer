@@ -66,7 +66,6 @@ bool ledWarningHR = false; // Flag for flashing warning LED for high heart rate
 bool dispInit = false; // Flag for displaying measurements upon initialization
 
 int atemp = 0; // Ambient temperature reading
-int stemp = 0; // Sensor temperature reading
 int hrThreshold = 550; // Threshold for detecting pulses in heart rate measurement
 
 SSD1306AsciiWire oled;
@@ -159,11 +158,6 @@ void loop() {
       oled.print(F("Ambient temp: "));
       oled.print(atemp);
       oled.print(F("\200C ")); // \200 is octal escape for degree symbol
-
-      oled.setCursor(0, 3);
-      oled.print(F("Sensor temp: "));
-      oled.print(stemp);
-      oled.print(F("\200C   "));
     }
 
     float Vptat = avg_adc_Vptat * 5.0 / 1024;
@@ -193,6 +187,7 @@ void loop() {
         right = mid;
     } while(left < right); // At the end, right holds the index of the predecessor (smaller neighbor)
 
+    int stemp;
     if (right == 0)
       stemp = 20;
     else if (right == Vth_table_len)
