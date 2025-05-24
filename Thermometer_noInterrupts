@@ -1,0 +1,179 @@
+#include <Wire.h>
+#include "SSD1306Ascii.h"
+#include "SSD1306AsciiWire.h"
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
+#include <PulseSensorPlayground.h>
+
+#define tPilePin A2
+#define HRpin 25
+#define thermistorPin A1
+#define ptatPin A0
+#define led_pin 5
+
+#define SCREEN_WIDTH 128 // OLED display width, in pixels
+#define SCREEN_HEIGHT 32 // OLED display height, in pixels
+#define OLED_RESET    -1 // Reset pin # (or -1 if sharing Arduino reset pin)
+
+//Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET); //Declaring the OLED name
+SSD1306AsciiWire oled;
+PulseSensorPlayground pulseSensor;
+
+const int tPileSamples = 50;
+unsigned long timeTracker = 0;
+int threshold = 580;
+float tPileVoltage = 0.0;
+float ptatVoltage = 0.0;  // Filtered PTAT voltage
+float alpha = 0.01;      // Filter coefficient (adjust this between 0 and 1)
+int bpm = 0;
+
+
+int starttime = 0;
+int endtime = 0;
+
+int HRsignal = 0;
+
+volatile float avg_adc_Vtp = 0.0;
+volatile float avg_adc_Vptat = 0.0;
+float ptatTemp = 0.0;
+float thermTemp = 0.0;
+
+void setup() {
+  // put your setup code here, to run once:
+  Serial.begin(9600);
+  pinMode(tPilePin, INPUT);
+  pinMode(thermistorPin, INPUT);
+  pinMode(ptatPin, INPUT);
+  pinMode(led_pin, OUTPUT);
+  digitalWrite(led_pin, HIGH);
+  delay(2000);
+  digitalWrite(led_pin, LOW);
+  delay(2000);
+  Wire.begin();
+
+  // cli(); // Disable interrupts
+
+  // TCCR2A = 0x02; // Set Timer2 to Mode 2 (non-PWM, CTC on OCR2A)
+  // TCCR2B = 0x05; // Set clock prescaler to 128
+  // OCR2A = 0x7C; // Set count to 124 for 1ms interrupt
+  // TIMSK2 = 0x02; // Set interrupt on OCR2A compare match
+
+  // sei(); // Enable interrupts
+
+  oled.begin(&Adafruit128x32, 0x3C); //Start the OLED display
+  oled.setFont(Callibri11);
+
+  pulseSensor.analogInput(25);
+  pulseSensor.blinkOnPulse(5);
+  pulseSensor.setThreshold(threshold);
+  if (pulseSensor.begin()) {
+    Serial.println("We created a pulseSensor Object !");  //This prints one time at Arduino power-up,  or on Arduino reset.  
+  }
+
+
+}
+// ISR (TIMER2_COMPA_vect) {
+//   cli(); // Disable interrupts
+
+//   int adc_Vtp = analogRead(tPilePin); // ADC reading of thermopile voltage
+
+//   // EMA filter formula: alpha*newSample + (1-alpha)*lastEMAvalue, with alpha=1/16 (to divide by power of 2)
+//   avg_adc_Vtp = (adc_Vtp + 15 * avg_adc_Vtp) / 16;
+
+
+//   int adc_Vptat = analogRead(ptatPin);
+//   avg_adc_Vptat = (adc_Vptat + 15 * avg_adc_Vptat) / 16;
+
+//   // count++;
+
+//   sei(); // Enable interrupts
+// }
+void loop() {
+  // put your main code here, to run repeatedly:
+  //int summer1 = 0;
+
+  // for (int i = 0; i < tPileSamples; i++) {
+  //   summer1+=analogRead(tPilePin);
+  //   delay(10);
+  // }
+  // int tPileAnalog = summer1 / tPileSamples; // take avg of samples
+  // Serial.print("Start Time: ");
+  // starttime = millis();
+  // Serial.print(starttime);
+
+  int tPileAnalog = analogRead(tPilePin);
+  // int bpm = pulseSensor.getBeatsPerMinute();
+  int thermistorAnalog = analogRead(thermistorPin);
+  int ptatAnalog = analogRead(ptatPin);
+
+
+
+  float rawtPileVoltage = tPileAnalog * (5.0/1023.0);
+  tPileVoltage = (alpha *rawtPileVoltage) + ((1 - alpha) * tPileVoltage);
+  float thermistorVoltage = thermistorAnalog * (5.0/1023.0);
+  float rawptatVoltage = ptatAnalog * (5.0 / 1023.0);
+  ptatVoltage = (alpha * rawptatVoltage) + ((1 - alpha) * ptatVoltage);
+  // ptatTemp = 0.00157*(exp(2.74*ptatVoltage));
+  ptatTemp = 69.9*ptatVoltage - 217;
+
+  thermTemp = 95.5*(exp(-0.342*tPileVoltage));
+
+  //Serial.print("Thermopile Analog Value: ");
+  //Serial.print(tPileAnalog);
+  // Serial.print("    Thermopile Voltage Value: ");
+  // Serial.print(tPileVoltage, 4);
+  //Serial.print("    Mistor Analog Value: ");
+  //Serial.print(thermistorAnalog);
+  // Serial.print("    Mistor Voltage Value: ");
+  // Serial.print(thermistorVoltage, 4);
+  // Serial.print ("   PTAT: ");
+  // Serial.print(ptatVoltage, 4);
+  // Serial.print("    HR: ");
+  // Serial.println(bpm);
+  
+  HRsignal = analogRead(HRpin); // HR reading only works with this code
+  Serial.print("    HRsignal: ");
+  Serial.println("Signal " + String(HRsignal));
+  if(HRsignal > threshold){                          // If the signal is above "550", then "turn-on" Arduino's on-Board LED.
+     digitalWrite(led_pin,HIGH);
+   } else {
+     digitalWrite(led_pin,LOW);                //  Else, the sigal must be below "550", so "turn-off" this LED.
+   }
+  // pulseSensor.blinkOnPulse(led_pin);
+  bpm = pulseSensor.getBeatsPerMinute();
+
+
+  if (millis() - timeTracker > 1000) {
+    oled.clear();
+    oled.setCursor(0,0);
+    // oled.print(F("TP A Val: "));
+    // oled.println(tPileAnalog, DEC);
+    //oled.setCursor(0, 24);
+    oled.print(F("Vtp: "));
+    oled.println(tPileVoltage, 4);
+    // oled.print(F("VPTAT: "));
+    // oled.println(ptatVoltage, 3);
+
+    oled.setCursor(60, 0);
+    oled.print(F("Vtm: "));
+    oled.println(thermistorVoltage, 3);
+
+    // oled.print(F("TM A Val: "));
+    // oled.println(thermistorAnalog, DEC);
+    // oled.print(F("Vam: "));
+    // oled.println(thermistorVoltage, 3);
+    oled.print(F("Vptat: "));
+    oled.println(ptatVoltage, 3);
+
+
+    oled.setCursor(74, 24);
+    oled.print(F("PTAT: "));
+    oled.println(ptatTemp);
+
+    // oled.setCursor(78, 24);
+    // oled.print(F("HR: "));
+    // oled.println(bpm);
+    // timeTracker = millis();
+  }
+  //delay(20);
+}
