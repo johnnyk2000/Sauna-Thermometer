@@ -219,50 +219,59 @@ void loop() {
     /* TODO: Compare/average(?) the sensor temp (from thermistor) and ambient temp (from PTAT) */
 
     /* BODY TEMPERATURE */
-    if (dispBtemp) { // Displaying body temperature
-      if ((currentMillis - dispBtempMillis) >= dispBtempPeriod) { // Display period elapsed
-        // TODO: print "---" to OLED to indicate ready state
-        oled.setCursor(0, 2);
-        oled.print(F("Body temp: ---      "));
-        ledWarningBtemp = false;
-        if (!ledWarningHR)
-          digitalWrite(LED_PIN, LOW);
-        dispBtemp = false;
-        avg_adc_Vtp = 0; // Reset ADC exponential moving average for body temperature to zero
-        // This is to prevent measurement from starting again right away due to capacitor at ADC input not discharging fully
-      }
-    }
-    else if (measBtemp) { // Measuring body temperature
-      if ((currentMillis - measBtempMillis) >= measBtempPeriod) { // Measurement period elapsed
-        // if (btemp >= 32 && btemp <= 43) { // Valid body temperature reading
-          // TODO: print btemp to OLED and RNBD serial
-          float Vtp = avg_adc_Vtp * 5.0 / 1024;
-          oled.setCursor(0, 2);
-          oled.print(F("Body temp: "));
-          oled.print(Vtp, 4);
-          oled.print(F("V "));
-          // if (btemp >= 39.4) { // Body temperature too high, flash warning LED
-          //   ledWarningBtemp = true;
-          //   if (!ledWarningHR)
-          //     ledMillis = currentMillis;
-          // }
-        // }
-        // else {
-        //   oled.setCursor(0, 2);
-        //   oled.print(F("Body temp: ---      "));
-        // }
-        measBtemp = false;
-        dispBtemp = true; // Start displaying
-        dispBtempMillis = currentMillis;
-      }
-    }
-    else { // Start measuring body temperature again
-      // TODO: print "Measuring" to OLED
-      oled.setCursor(0, 2);
-      oled.print(F("Body temp: Measuring"));
-      measBtemp = true; // Start measuring
-      measBtempMillis = currentMillis;
-    }
+  if ((currentMillis - measBtempMillis) >= measBtempPeriod) {
+    float Vtp = avg_adc_Vtp * 5.0 / 1024;
+    oled.setCursor(0, 2);
+    oled.print(F("Body temp: "));
+    oled.print(Vtp, 4);
+    oled.print(F("V "));
+    measBtempMillis = currentMillis;
+  }
+
+    // if (dispBtemp) { // Displaying body temperature
+    //   if ((currentMillis - dispBtempMillis) >= dispBtempPeriod) { // Display period elapsed
+    //     // TODO: print "---" to OLED to indicate ready state
+    //     oled.setCursor(0, 2);
+    //     oled.print(F("Body temp: ---      "));
+    //     ledWarningBtemp = false;
+    //     if (!ledWarningHR)
+    //       digitalWrite(LED_PIN, LOW);
+    //     dispBtemp = false;
+    //     avg_adc_Vtp = 0; // Reset ADC exponential moving average for body temperature to zero
+    //     // This is to prevent measurement from starting again right away due to capacitor at ADC input not discharging fully
+    //   }
+    // }
+    // else if (measBtemp) { // Measuring body temperature
+    //   if ((currentMillis - measBtempMillis) >= measBtempPeriod) { // Measurement period elapsed
+    //     // if (btemp >= 32 && btemp <= 43) { // Valid body temperature reading
+    //       // TODO: print btemp to OLED and RNBD serial
+    //       float Vtp = avg_adc_Vtp * 5.0 / 1024;
+    //       oled.setCursor(0, 2);
+    //       oled.print(F("Body temp: "));
+    //       oled.print(Vtp, 4);
+    //       oled.print(F("V "));
+    //       // if (btemp >= 39.4) { // Body temperature too high, flash warning LED
+    //       //   ledWarningBtemp = true;
+    //       //   if (!ledWarningHR)
+    //       //     ledMillis = currentMillis;
+    //       // }
+    //     // }
+    //     // else {
+    //     //   oled.setCursor(0, 2);
+    //     //   oled.print(F("Body temp: ---      "));
+    //     // }
+    //     measBtemp = false;
+    //     dispBtemp = true; // Start displaying
+    //     dispBtempMillis = currentMillis;
+    //   }
+    // }
+    // else { // Start measuring body temperature again
+    //   // TODO: print "Measuring" to OLED
+    //   oled.setCursor(0, 2);
+    //   oled.print(F("Body temp: Measuring"));
+    //   measBtemp = true; // Start measuring
+    //   measBtempMillis = currentMillis;
+    // }
 
     /* HEART RATE */
     // if (dispHR) { // Displaying heart rate
