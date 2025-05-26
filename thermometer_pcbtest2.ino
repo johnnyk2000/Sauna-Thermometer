@@ -12,21 +12,33 @@
 
 // Linear fit parameters for calculating body temperature at each ambient temperature (20, 21, ..., 85°C)
 // TODO: change after calibration
-// const float Btemp_line_const[] = {-1.7194, -1.7874, -1.8560, -1.9254, -1.9954, -2.0662, -2.1377, -2.2099, -2.2828, -2.3564, -2.4308, 
-//                                   -2.5059, -2.5818, -2.6584, -2.7358, -2.8139, -2.8928, -2.9725, -3.0530, -3.1342, -3.2162, -3.2990, 
-//                                   -3.3826, -3.4670, -3.5522, -3.6382, -3.7250, -3.8126, -3.9011, -3.9904, -4.0805, -4.1715, -4.2633, 
-//                                   -4.3560, -4.4495, -4.5439, -4.6391, -4.7352, -4.8322, -4.9301, -5.0289, -5.1286, -5.2291, -5.3306, 
-//                                   -5.4330, -5.5363, -5.6405, -5.7456, -5.8517, -5.9587, -6.0667, -6.1756, -6.2854, -6.3962, -6.5080, 
-//                                   -6.6207, -6.7345, -6.8492, -6.9649, -7.0815, -7.1992, -7.3179, -7.4376, -7.5583, -7.6800, -7.8028};
-// const float Btemp_line_slope = 0.08046; // Slope is same for all ambient temperatures
-const float Btemp_line_const1[] = {-21.3701, -22.2146, -23.0677, -23.9296, -24.8002, -25.6796, -26.5680, -27.4653, -28.3716, -29.2870, -30.2115, 
+// Fit of our data
+// const float Btemp_line_const[] = {-1.7439, -1.8128, -1.8824, -1.9527, -2.0238, -2.0955, -2.1680, -2.2413, -2.3152, -2.3899, -2.4654, 
+//                                   -2.5415, -2.6185, -2.6962, -2.7747, -2.8539, -2.9339, -3.0147, -3.0963, -3.1787, -3.2619, -3.3459, 
+//                                   -3.4306, -3.5162, -3.6026, -3.6899, -3.7779, -3.8668, -3.9565, -4.0471, -4.1385, -4.2308, -4.3239, 
+//                                   -4.4179, -4.5127, -4.6084, -4.7050, -4.8025, -4.9009, -5.0002, -5.1004, -5.2014, -5.3034, -5.4063, 
+//                                   -5.5102, -5.6149, -5.7206, -5.8273, -5.9349, -6.0434, -6.1529, -6.2633, -6.3747, -6.4871, -6.6005, 
+//                                   -6.7148, -6.8302, -6.9465, -7.0638, -7.1822, -7.3015, -7.4219, -7.5433, -7.6657, -7.7892, -7.9137};
+// const float Btemp_line_slope = 0.08160; // Slope is same for all ambient temperatures
+// Divide Btemp_line_const by Btemp_line_slope
+const float Btemp_line_const1[] = {-21.3710, -22.2155, -23.0686, -23.9305, -24.8012, -25.6806, -26.5690, -27.4664, -28.3727, -29.2881, -30.2127, 
+                                   -31.1464, -32.0894, -33.0418, -34.0035, -34.9746, -35.9552, -36.9455, -37.9453, -38.9548, -39.9741, -41.0031, 
+                                   -42.0421, -43.0910, -44.1499, -45.2188, -46.2979, -47.3872, -48.4867, -49.5965, -50.7168, -51.8474, -52.9886, 
+                                   -54.1404, -55.3028, -56.4759, -57.6598, -58.8545, -60.0602, -61.2768, -62.5044, -63.7432, -64.9931, -66.2543, 
+                                   -67.5268, -68.8106, -70.1059, -71.4127, -72.7310, -74.0611, -75.4028, -76.7563, -78.1216, -79.4989, -80.8882, 
+                                   -82.2895, -83.7030, -85.1286, -86.5665, -88.0168, -89.4794, -90.9546, -92.4422, -93.9426, -95.4555, -96.98133};
+const float Btemp_line2 = 0.08865; // 5000 / (1024 * 675 * Btemp_line_slope)
+const float Btemp_line3 = 67.7560; // 3732 / (675 * Btemp_line_slope)
+
+// Manufacturer provided typical curve
+const float Btemp_line_const2[] = {-21.3701, -22.2146, -23.0677, -23.9296, -24.8002, -25.6796, -26.5680, -27.4653, -28.3716, -29.2870, -30.2115, 
                                    -31.1452, -32.0882, -33.0404, -34.0021, -34.9732, -35.9538, -36.9440, -37.9438, -38.9532, -39.9725, -41.0015, 
-                                   -42.0404, -43.0892, -44.1481, -45.2170, -46.2960, -47.3853, -48.4847, -49.5945, -50.7147, -51.8453, -52.9865, 
-                                   -54.1382, -55.3006, -56.4736, -57.6575, -58.8522, -60.0578, -61.2743, -62.5019, -63.7406, -64.9905, -66.2516, 
-                                   -67.5240, -68.8078, -70.1030, -71.4098, -72.7281, -74.0580, -75.3997, -76.7532, -78.1185, -79.4957, -80.8849, 
-                                   -82.2861, -83.6995, -85.1251, -86.5630, -88.0132, -89.4758, -90.9508, -92.4385, -93.9387, -95.4516, -96.9773};
-const float Btemp_line2 = 0.08991;
-const float Btemp_line3 = 68.4766;
+                                   -42.0404, -43.0892, -44.1481, -45.2170, -46.2960, -47.3852, -48.4847, -49.5945, -50.7147, -51.8453, -52.9865, 
+                                   -54.1382, -55.3006, -56.4736, -57.6575, -58.8522, -60.0577, -61.2743, -62.5019, -63.7406, -64.9905, -66.2516, 
+                                   -67.5240, -68.8078, -70.1030, -71.4097, -72.7281, -74.0580, -75.3997, -76.7531, -78.1184, -79.4957, -80.8849, 
+                                   -82.2861, -83.6995, -85.1251, -86.5630, -88.0131, -89.4757, -90.9508, -92.4384, -93.9387, -95.4516, -96.9773};
+const float Btemp_line4 = 0.08991; // 5000 / (1024 * 675 * Btemp_line_slope) slope is 0.08046
+const float Btemp_line5 = 68.7160; // 3732 / (675 * Btemp_line_slope)
 
 // Voltage across thermistor, converted to ADC value, for each ambient temperature (20, 21, ..., 85°C)
 // TODO: change after calibration
@@ -205,54 +217,6 @@ void loop() {
     int mid;
     do {
       mid = left + floor((right-left)/2);
-      if (Vth_adc_table1[mid] > adc_Vth)
-        left = mid + 1;
-      else
-        right = mid;
-    } while(left < right); // At the end, right holds the index of the predecessor (smaller neighbor)
-
-    if (right == 0)
-      stemp = 20;
-    else if (right == Vth_table_len)
-      stemp = 19 + Vth_table_len;
-    else if ((adc_Vth - Vth_adc_table1[right]) <= (Vth_adc_table1[right-1] - adc_Vth)) // Vth reading is closer to the predecessor than to the successor (larger neighbor)
-      stemp = 20 + right; // Use the predecessor index
-    else
-      stemp = 19 + right; // Use the successor index (20 + right-1) = 19 + right
-
-    oled.setCursor(0,0);
-    oled.print(F("TH1: "));
-    oled.print(stemp);
-
-    // Binary nearest neighbor search to map Vth reading to temperature; note Vth_adc_table is in descending order
-    left = 0;
-    right = Vth_table_len;
-    do {
-      mid = left + floor((right-left)/2);
-      if (Vth_adc_table2[mid] > adc_Vth)
-        left = mid + 1;
-      else
-        right = mid;
-    } while(left < right); // At the end, right holds the index of the predecessor (smaller neighbor)
-
-    if (right == 0)
-      stemp = 20;
-    else if (right == Vth_table_len)
-      stemp = 19 + Vth_table_len;
-    else if ((adc_Vth - Vth_adc_table2[right]) <= (Vth_adc_table2[right-1] - adc_Vth)) // Vth reading is closer to the predecessor than to the successor (larger neighbor)
-      stemp = 20 + right; // Use the predecessor index
-    else
-      stemp = 19 + right; // Use the successor index (20 + right-1) = 19 + right
-
-    oled.setCursor(56,0);
-    oled.print(F("TH2: "));
-    oled.println(stemp);
-
-    // Binary nearest neighbor search to map Vth reading to temperature; note Vth_adc_table is in descending order
-    left = 0;
-    right = Vth_table_len;
-    do {
-      mid = left + floor((right-left)/2);
       if (Vth_adc_table3[mid] > adc_Vth)
         left = mid + 1;
       else
@@ -296,11 +260,14 @@ void loop() {
     oled.println(stemp);
 
     /* CALCULATE BODY TEMPERATURE */
-    float btemp = 0;
-    if (adc_Vth <= 1019 && adc_Vth >= 85) { // Limits are the values corresponding to 19 and 86°C TODO: change after calibration
-      // btemp = ((avg_adc_Vtp / 1024 * 5000 - 3719) / 675 - Btemp_line_const[stemp - 20]) / Btemp_line_slope;
+    float btemp1 = 0;
+    float btemp2 = 0;
+    // if (adc_Vth <= 1019 && adc_Vth >= 85) { // Limits are the values corresponding to 19 and 86°C TODO: change after calibration
+    if (adc_Vth <= 1154 && adc_Vth >= 93) { // approx. limits
+      // btemp = ((avg_adc_Vtp / 1024 * 5000 - 3732) / 675 - Btemp_line_const[stemp - 20]) / Btemp_line_slope;
       // Reduced above computations by absorbing constants into the line parameters
-      btemp = avg_adc_Vtp * Btemp_line2 - Btemp_line3 - Btemp_line_const1[stemp - 20]; // TODO: change after calibration
+      btemp1 = avg_adc_Vtp * Btemp_line2 - Btemp_line3 - Btemp_line_const1[stemp - 20]; // TODO: change after calibration
+      btemp2 = avg_adc_Vtp * Btemp_line4 - Btemp_line5 - Btemp_line_const2[stemp - 20];
     }
 
     /* CALCULATE HEART RATE */
@@ -312,10 +279,12 @@ void loop() {
     /* BODY TEMPERATURE */
   if ((currentMillis - measBtempMillis) >= measBtempPeriod) {
     float Vtp = avg_adc_Vtp * 5.0 / 1024;
-    // oled.setCursor(0, 2);
-    // oled.print(F("Body temp: "));
-    // oled.print(Vtp, 4);
-    // oled.print(F("V "));
+    oled.setCursor(0, 0);
+    oled.print(F("TP1: "));
+    oled.print(btemp1, 2);
+    oled.setCursor(56, 0);
+    oled.print(F("TP1: "));
+    oled.print(btemp2, 2);
     measBtempMillis = currentMillis;
   }
 
