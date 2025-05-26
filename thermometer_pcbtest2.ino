@@ -198,7 +198,22 @@ void loop() {
     // oled.print(F("Vptat: "));
     // oled.print(Vptat, 4);
     // oled.print(F("V "));
+
+    float atemp1 = 69.9 * Vptat - 217;
+    float atemp2 = 89.5 * Vptat - 287;
+    float atemp3 = 66.4 * Vptat - 208;
   
+    oled.setCursor(0,0);
+    oled.print(F("PT1: "));
+    oled.print(atemp1, 2);
+
+    oled.setCursor(56,0);
+    oled.print(F("PT2: "));
+    oled.println(atemp2, 2);
+
+    oled.print(F("PT4: "));
+    oled.print(atemp3, 2);
+
     updateAtempMillis = currentMillis;
 
     int adc_Vth = analogRead(VTH_PIN); // ADC reading of voltage across thermistor
@@ -215,6 +230,54 @@ void loop() {
     int left = 0;
     int right = Vth_table_len;
     int mid;
+    // do {
+    //   mid = left + floor((right-left)/2);
+    //   if (Vth_adc_table1[mid] > adc_Vth)
+    //     left = mid + 1;
+    //   else
+    //     right = mid;
+    // } while(left < right); // At the end, right holds the index of the predecessor (smaller neighbor)
+
+    // if (right == 0)
+    //   stemp = 20;
+    // else if (right == Vth_table_len)
+    //   stemp = 19 + Vth_table_len;
+    // else if ((adc_Vth - Vth_adc_table1[right]) <= (Vth_adc_table1[right-1] - adc_Vth)) // Vth reading is closer to the predecessor than to the successor (larger neighbor)
+    //   stemp = 20 + right; // Use the predecessor index
+    // else
+    //   stemp = 19 + right; // Use the successor index (20 + right-1) = 19 + right
+
+    // oled.setCursor(0,0);
+    // oled.print(F("TH1: "));
+    // oled.print(stemp);
+
+    // // Binary nearest neighbor search to map Vth reading to temperature; note Vth_adc_table is in descending order
+    // left = 0;
+    // right = Vth_table_len;
+    // do {
+    //   mid = left + floor((right-left)/2);
+    //   if (Vth_adc_table2[mid] > adc_Vth)
+    //     left = mid + 1;
+    //   else
+    //     right = mid;
+    // } while(left < right); // At the end, right holds the index of the predecessor (smaller neighbor)
+
+    // if (right == 0)
+    //   stemp = 20;
+    // else if (right == Vth_table_len)
+    //   stemp = 19 + Vth_table_len;
+    // else if ((adc_Vth - Vth_adc_table2[right]) <= (Vth_adc_table2[right-1] - adc_Vth)) // Vth reading is closer to the predecessor than to the successor (larger neighbor)
+    //   stemp = 20 + right; // Use the predecessor index
+    // else
+    //   stemp = 19 + right; // Use the successor index (20 + right-1) = 19 + right
+
+    // oled.setCursor(56,0);
+    // oled.print(F("TH2: "));
+    // oled.println(stemp);
+
+    // Binary nearest neighbor search to map Vth reading to temperature; note Vth_adc_table is in descending order
+    left = 0;
+    right = Vth_table_len;
     do {
       mid = left + floor((right-left)/2);
       if (Vth_adc_table3[mid] > adc_Vth)
@@ -232,32 +295,34 @@ void loop() {
     else
       stemp = 19 + right; // Use the successor index (20 + right-1) = 19 + right
 
+    oled.setCursor(65,24);
+
     oled.print(F("TH3: "));
     oled.print(stemp);
 
-    // Binary nearest neighbor search to map Vth reading to temperature; note Vth_adc_table is in descending order
-    left = 0;
-    right = Vth_table_len;
-    do {
-      mid = left + floor((right-left)/2);
-      if (Vth_adc_table4[mid] > adc_Vth)
-        left = mid + 1;
-      else
-        right = mid;
-    } while(left < right); // At the end, right holds the index of the predecessor (smaller neighbor)
+    // // Binary nearest neighbor search to map Vth reading to temperature; note Vth_adc_table is in descending order
+    // left = 0;
+    // right = Vth_table_len;
+    // do {
+    //   mid = left + floor((right-left)/2);
+    //   if (Vth_adc_table4[mid] > adc_Vth)
+    //     left = mid + 1;
+    //   else
+    //     right = mid;
+    // } while(left < right); // At the end, right holds the index of the predecessor (smaller neighbor)
 
-    if (right == 0)
-      stemp = 20;
-    else if (right == Vth_table_len)
-      stemp = 19 + Vth_table_len;
-    else if ((adc_Vth - Vth_adc_table4[right]) <= (Vth_adc_table4[right-1] - adc_Vth)) // Vth reading is closer to the predecessor than to the successor (larger neighbor)
-      stemp = 20 + right; // Use the predecessor index
-    else
-      stemp = 19 + right; // Use the successor index (20 + right-1) = 19 + right
+    // if (right == 0)
+    //   stemp = 20;
+    // else if (right == Vth_table_len)
+    //   stemp = 19 + Vth_table_len;
+    // else if ((adc_Vth - Vth_adc_table4[right]) <= (Vth_adc_table4[right-1] - adc_Vth)) // Vth reading is closer to the predecessor than to the successor (larger neighbor)
+    //   stemp = 20 + right; // Use the predecessor index
+    // else
+    //   stemp = 19 + right; // Use the successor index (20 + right-1) = 19 + right
 
-    oled.setCursor(65,24);
-    oled.print(F("TH4: "));
-    oled.println(stemp);
+    // oled.setCursor(65,24);
+    // oled.print(F("TH4: "));
+    // oled.println(stemp);
 
     /* CALCULATE BODY TEMPERATURE */
     float btemp1 = 0;
@@ -279,12 +344,12 @@ void loop() {
     /* BODY TEMPERATURE */
   if ((currentMillis - measBtempMillis) >= measBtempPeriod) {
     float Vtp = avg_adc_Vtp * 5.0 / 1024;
-    oled.setCursor(0, 0);
-    oled.print(F("TP1: "));
-    oled.print(btemp1, 2);
-    oled.setCursor(56, 0);
-    oled.print(F("TP1: "));
-    oled.print(btemp2, 2);
+    // oled.setCursor(0, 0);
+    // oled.print(F("TP1: "));
+    // oled.print(btemp1, 2);
+    // oled.setCursor(56, 0);
+    // oled.print(F("TP1: "));
+    // oled.println(btemp2, 2);
     measBtempMillis = currentMillis;
   }
 
