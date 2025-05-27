@@ -12,6 +12,7 @@
 
 // Linear fit parameters for calculating body temperature at each ambient temperature (20, 21, ..., 85°C)
 // TODO: change after calibration
+// Lookup table from fitting the typical data provided by the manufacturer
 // const float Btemp_line_const[] = {-1.7194, -1.7874, -1.8560, -1.9254, -1.9954, -2.0662, -2.1377, -2.2099, -2.2828, -2.3564, -2.4308, 
 //                                   -2.5059, -2.5818, -2.6584, -2.7358, -2.8139, -2.8928, -2.9725, -3.0530, -3.1342, -3.2162, -3.2990, 
 //                                   -3.3826, -3.4670, -3.5522, -3.6382, -3.7250, -3.8126, -3.9011, -3.9904, -4.0805, -4.1715, -4.2633, 
@@ -25,14 +26,15 @@ const float Btemp_line_const1[] = {-21.3701, -22.2146, -23.0677, -23.9296, -24.8
                                    -54.1382, -55.3006, -56.4736, -57.6575, -58.8522, -60.0578, -61.2743, -62.5019, -63.7406, -64.9905, -66.2516, 
                                    -67.5240, -68.8078, -70.1030, -71.4098, -72.7281, -74.0580, -75.3997, -76.7532, -78.1185, -79.4957, -80.8849, 
                                    -82.2861, -83.6995, -85.1251, -86.5630, -88.0132, -89.4758, -90.9508, -92.4385, -93.9387, -95.4516, -96.9773};
-const float Btemp_line2 = 0.08991;
-const float Btemp_line3 = 68.4766;
+const float Btemp_line2 = 0.08991; // 5000 / (1024 * 675 * Btemp_line_slope)
+const float Btemp_line3 = 68.7160; // 3732 / (675 * Btemp_line_slope)
 
 // Voltage across thermistor, converted to ADC value, for each ambient temperature (20, 21, ..., 85°C)
 // TODO: change after calibration
-const int Vth_adc_table[] = {995, 951, 908, 868, 830, 794, 760, 727, 696, 666, 638, 611, 586, 562, 539, 517, 496, 476, 456, 438, 421, 404, 
-                             389, 373, 359, 345, 332, 319, 307, 296, 285, 274, 264, 255, 245, 236, 228, 220, 212, 205, 197, 191, 184, 178, 
-                             172, 166, 160, 155, 149, 145, 140, 135, 131, 126, 122, 118, 115, 111, 107, 104, 101, 98, 95, 92, 89, 86};
+// Based on typical curve-fit parameters provided by the manufacturer, and incorporating hardcoded changes in bandgap current
+const int Vth_adc_table[] = {1101, 1052, 1005, 961, 919, 879, 841, 804, 770, 737, 709, 680, 651, 624, 599, 574, 551, 529, 507, 488, 469, 451, 
+                             433, 416, 400, 386, 371, 357, 343, 330, 319, 307, 296, 285, 275, 265, 255, 246, 237, 229, 221, 213, 206, 199, 
+                             192, 185, 179, 173, 167, 162, 156, 151, 146, 142, 137, 133, 128, 124, 120, 117, 113, 109, 106, 103, 100, 97};
 const int Vth_table_len = 66;
 
 volatile float avg_adc_Vtp = 0.0; // Exponential moving average of thermopile voltage ADC samples
@@ -126,7 +128,8 @@ void loop() {
   /* DISPLAY MEASUREMENTS UPON INITIALIZATION */
   if (dispInit) { // Just initialized
     if ((currentMillis - updateAtempMillis) >= 1000) { // 1sec elapsed after initialization
-      atemp = round(0.3946 * avg_adc_Vptat - 242.3); // TODO: check this
+      // Tamb = 66.4 * Vptat - 208 where Vptat = avg_adc_Vptat * 5.0 / 1024
+      atemp = round(0.3242 * avg_adc_Vptat - 208);
       oled.setCursor(0, 1);
       oled.print(F("Ambient temp: "));
       oled.print(atemp);
@@ -148,8 +151,8 @@ void loop() {
 
   /* AMBIENT TEMPERATURE */
   if ((currentMillis - updateAtempMillis) >= updateAtempPeriod) { // Update period elapsed
-    // Vptat = 12.3733*Tamb + 2998.08 [mV] -> Tamb = Vptat/12.3733 - 242.30
-    int atempNew = round(0.3946 * avg_adc_Vptat - 242.3); // Calculate updated ambient temperature TODO: check this
+    // Tamb = 66.4 * Vptat - 208 where Vptat = avg_adc_Vptat * 5.0 / 1024
+    int atempNew = round(0.3242 * avg_adc_Vptat - 208); // Calculate updated ambient temperature
 
     if (atempNew != atemp) { // Ambient temperature reading changed
       atemp = atempNew;
@@ -172,7 +175,7 @@ void loop() {
   int adc_Vth = analogRead(VTH_PIN); // ADC reading of voltage across thermistor
 
   // Only proceed if Vth is within the specified operating range
-  if (adc_Vth <= 1019 && adc_Vth >= 85) { // Limits are the values corresponding to 19 and 86°C TODO: change after calibration
+  if (adc_Vth <= 1150 && adc_Vth >= 94) { // Limits are the values corresponding to 19 and 86°C TODO: change after calibration
 
     /* CALCULATE SENSOR AMBIENT TEMPERATURE */
     // Binary nearest neighbor search to map Vth reading to temperature; note Vth_adc_table is in descending order
@@ -198,12 +201,9 @@ void loop() {
       stemp = 19 + right; // Use the successor index (20 + right-1) = 19 + right
 
     /* CALCULATE BODY TEMPERATURE */
-    float btemp = 0;
-    if (adc_Vth <= 1019 && adc_Vth >= 85) { // Limits are the values corresponding to 19 and 86°C TODO: change after calibration
-      // btemp = ((avg_adc_Vtp / 1024 * 5000 - 3719) / 675 - Btemp_line_const[stemp - 20]) / Btemp_line_slope;
-      // Reduced above computations by absorbing constants into the line parameters
-      btemp = avg_adc_Vtp * Btemp_line2 - Btemp_line3 - Btemp_line_const1[stemp - 20]; // TODO: change after calibration
-    }
+    // btemp = ((avg_adc_Vtp / 1024 * 5000 - 3732) / 675 - Btemp_line_const[stemp - 20]) / Btemp_line_slope;
+    // Reduced above computations by absorbing constants into the line parameters
+    float btemp = avg_adc_Vtp * Btemp_line2 - Btemp_line3 - Btemp_line_const1[stemp - 20]; // TODO: change after calibration
 
     /* CALCULATE HEART RATE */
 
