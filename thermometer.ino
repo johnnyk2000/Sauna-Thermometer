@@ -162,12 +162,6 @@ void loop() {
       oled.print(atemp);
       oled.print(F("\200C ")); // \200 is octal escape for degree symbol
     }
-
-    float Vptat = avg_adc_Vptat * 5.0 / 1024;
-    oled.setCursor(0, 1);
-    oled.print(F("Vptat: "));
-    oled.print(Vptat, 4);
-    oled.print(F("V "));
   
     updateAtempMillis = currentMillis;
   }
@@ -229,11 +223,10 @@ void loop() {
       if ((currentMillis - measBtempMillis) >= measBtempPeriod) { // Measurement period elapsed
         if (btemp >= 32 && btemp <= 43) { // Valid body temperature reading
           // TODO: print btemp to OLED and RNBD serial
-          float Vtp = avg_adc_Vtp * 5.0 / 1024;
           oled.setCursor(0, 2);
           oled.print(F("Body temp: "));
-          oled.print(Vtp, 4);
-          oled.print(F("V "));
+          oled.print(btemp, 1);
+          oled.print(F("\200C   ")); // \200 is octal escape for degree symbol
           if (btemp >= 39.4) { // Body temperature too high, flash warning LED
             ledWarningBtemp = true;
             if (!ledWarningHR)
