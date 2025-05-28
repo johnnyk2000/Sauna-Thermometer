@@ -298,7 +298,7 @@ void loop() {
     oled.setCursor(65,24);
 
     oled.print(F("TH3: "));
-    oled.print(stemp);
+    oled.println(stemp);
 
     // // Binary nearest neighbor search to map Vth reading to temperature; note Vth_adc_table is in descending order
     // left = 0;
